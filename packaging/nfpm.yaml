@@ -1,0 +1,62 @@
+# Run by package.sh from a staging directory containing the files below.
+# VERSION and ARCH are expanded from the environment.
+name: vaultwarden
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+release: 1
+section: net
+priority: optional
+maintainer: xTom <packages@xtom.com>
+description: |
+  Unofficial Bitwarden compatible server written in Rust.
+  Static musl binary and web-vault extracted from the official
+  ghcr.io/dani-garcia/vaultwarden:<version>-alpine image.
+homepage: https://github.com/dani-garcia/vaultwarden
+license: AGPL-3.0-only
+
+# Static musl binary, so no shared library dependencies
+depends:
+  - ca-certificates
+
+overrides:
+  rpm:
+    depends:
+      - ca-certificates
+      - /usr/sbin/useradd
+
+contents:
+  - src: root/vaultwarden
+    dst: /usr/bin/vaultwarden
+    file_info:
+      mode: 0755
+
+  - src: root/web-vault
+    dst: /usr/share/vaultwarden/web-vault
+    type: tree
+
+  - src: root/vaultwarden.service
+    dst: /usr/lib/systemd/system/vaultwarden.service
+    file_info:
+      mode: 0644
+
+  - src: root/vaultwarden.env
+    dst: /etc/vaultwarden/vaultwarden.env
+    type: config|noreplace
+    file_info:
+      mode: 0640
+
+  - src: root/LICENSE.txt
+    dst: /usr/share/doc/vaultwarden/LICENSE.txt
+    file_info:
+      mode: 0644
+
+  - dst: /var/lib/vaultwarden
+    type: dir
+    file_info:
+      mode: 0700
+
+scripts:
+  postinstall: scripts/postinstall.sh
+  preremove: scripts/preremove.sh
+  postremove: scripts/postremove.sh
