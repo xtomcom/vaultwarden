@@ -1,0 +1,10 @@
+{
+  "version": "1.37.4",
+  "updated_at": "2026-10-28T23:50:11Z",
+  "release": "https://github.com/xtomcom/vaultwarden/releases/tag/1.37.4",
+  "upstream": "https://github.com/dani-garcia/vaultwarden/releases/tag/1.37.4",
+  "images": {
+    "gnu": "ghcr.io/dani-garcia/vaultwarden:1.37.4@sha256:efb3cde962015fcc036b2ea625242248611943b27212ebf4392841fb30fad055",
+    "musl": "ghcr.io/dani-garcia/vaultwarden:1.37.4-alpine@sha256:19ea2b669945d842dadc3d500f2d6a795866a003330f59a47b9634658bae98bb"
+  }
+}
