@@ -236,12 +236,53 @@ jobs:
             dist/*.deb
             dist/*.rpm
 
+      - uses: actions/checkout@v7
+        with:
+          path: repo
+
+      # Commit release.json first so the release tag points at a commit that records it
+      - name: Record release in repository
+        id: record
+        working-directory: repo
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+          GNU_DIGEST: ${{ needs.check.outputs.gnu_digest }}
+          MUSL_DIGEST: ${{ needs.check.outputs.musl_digest }}
+        run: |
+          set -euo pipefail
+          current="$(jq -r '.version // "0"' release.json 2>/dev/null || echo 0)"
+          # Backfilling an older version must not move release.json backwards
+          if [ "$(printf '%s\n%s\n' "${current}" "${VERSION}" | sort -V | tail -n1)" != "${VERSION}" ]; then
+            echo "release.json already records ${current}, leaving it unchanged"
+            echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          jq -n \
+            --arg version "${VERSION}" \
+            --arg updated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg release "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${VERSION}" \
+            --arg upstream "https://github.com/${UPSTREAM_REPO}/releases/tag/${VERSION}" \
+            --arg gnu "${IMAGE}:${VERSION}@${GNU_DIGEST}" \
+            --arg musl "${IMAGE}:${VERSION}-alpine@${MUSL_DIGEST}" \
+            '{version: $version, updated_at: $updated_at, release: $release, upstream: $upstream, images: {gnu: $gnu, musl: $musl}}' \
+            > release.json
+          cat release.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release.json
+          git commit -m "Release vaultwarden ${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+
       - name: Create or update release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
           GNU_DIGEST: ${{ needs.check.outputs.gnu_digest }}
           MUSL_DIGEST: ${{ needs.check.outputs.musl_digest }}
+          TARGET_SHA: ${{ steps.record.outputs.sha }}
         run: |
           set -euo pipefail
           if gh release view "${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
@@ -266,6 +307,7 @@ jobs:
           )"
             gh release create "${VERSION}" dist/* \
               --repo "${GITHUB_REPOSITORY}" \
+              --target "${TARGET_SHA}" \
               --title "Vaultwarden ${VERSION}" \
               --notes "${notes}"
           fi

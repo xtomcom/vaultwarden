@@ -7,7 +7,8 @@ Linux binaries and .deb packages of [dani-garcia/vaultwarden](https://github.com
 1. Reads the latest release from GitHub and the latest version tag from ghcr.io.
 2. If we have no release for that version yet, waits until `ghcr.io/dani-garcia/vaultwarden:<ver>` and `:<ver>-alpine` are published for both `linux/amd64` and `linux/arm64` (otherwise the next run retries).
 3. Pulls each image by digest on a native runner (`ubuntu-latest` / `ubuntu-24.04-arm`), copies out `/vaultwarden` and `/web-vault`, and checks `--version`.
-4. Packages archives, .deb and .rpm files with nfpm and publishes a GitHub release.
+4. Packages archives, .deb and .rpm files with nfpm.
+5. Commits `release.json` (version, timestamp, image digests) and publishes a GitHub release tagged on that commit. Backfilling an older version leaves `release.json` untouched.
 
 | Asset | Source image | Runs on |
 |---|---|---|
